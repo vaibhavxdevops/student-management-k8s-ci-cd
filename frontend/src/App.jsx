@@ -86,7 +86,7 @@ export default function App() {
         <h2>{editingId ? "Edit student" : "Add a student"}</h2>
         <div className="fields">
           <label>
-            Full name
+            Full name is this
             <input name="name" value={form.name} onChange={onChange} required />
           </label>
           <label>
