@@ -75,6 +75,7 @@ export default function App() {
   const shown = students.filter((s) =>
     [s.name, s.email, s.course].join(" ").toLowerCase().includes(query.toLowerCase())
   );
+  
 
   return (
     <main className="page">

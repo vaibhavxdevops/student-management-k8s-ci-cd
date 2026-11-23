@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: student-backend
+  labels:
+    app: student-backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: student-backend
+  template:
+    metadata:
+      labels:
+        app: student-backend
+    spec:
+      containers:
+        - name: student-backend
+          image: vaibhavswarnkar2006/k8s-backend:v1
+          ports:
+            - containerPort: 5000
+          env:
+            - name: PORT
+              value: "5000"
+            - name: DB_SSL
+              value: "true"
+            # Your S3 website URL (no trailing slash)
+            - name: CORS_ORIGIN
+              value: "http://k8s-project-frontend.s3-website-us-east-1.amazonaws.com"
+            # Comes from the Kubernetes Secret, never written in this file
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: student-backend-secret
+                  key: DATABASE_URL
+          # Ready only when the app can reach the database
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 5000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+          # Restart only if the process itself stops answering
+          livenessProbe:
+            tcpSocket:
+              port: 5000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
