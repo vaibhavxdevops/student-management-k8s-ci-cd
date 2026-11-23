@@ -73,7 +73,7 @@ jobs:
 
       - name: Point the manifest at the new image
         run: |
-          sed -i "s|image: .*|image: ${{ env.IMAGE }}:${{ github.sha }}|" k8s/deployment.yaml
+          sed -i "s|image: .*|image: ${{ env.IMAGE }}:${{ github.sha }}|" k8s/Deployment.yaml
 
       - name: Apply manifests
         run: |
