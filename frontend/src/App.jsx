@@ -82,6 +82,7 @@ export default function App() {
       </header>
 
       {error && <div className="error" role="alert">{error}</div>}
+      Just checking
 
       <form className="form" onSubmit={onSubmit}>
         <h2>{editingId ? "Edit student" : "Add a student"}</h2>
