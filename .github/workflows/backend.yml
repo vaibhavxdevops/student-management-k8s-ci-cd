@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 name: Backend CI/CD
 
 on:
@@ -83,3 +84,89 @@ jobs:
 
       - name: Wait for the rollout
         run: kubectl rollout status deployment/student-backend --timeout=180s
+=======
+name: Backend CI/CD
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - "k8s/deployment.yaml"
+      - "k8s/service.yaml"
+      - ".github/workflows/backend.yml"
+  workflow_dispatch:
+
+# Never run two deploys at the same time
+concurrency:
+  group: backend-deploy
+  cancel-in-progress: false
+
+env:
+  IMAGE: vaibhavswarnkar2006/k8s-backend
+  AWS_REGION: us-east-1
+  CLUSTER_NAME: student-app
+
+jobs:
+  build:
+    name: Build and push image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Syntax check
+        working-directory: backend
+        run: |
+          npm ci
+          node --check server.js
+          node --check db.js
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push (tagged with the commit SHA)
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          push: true
+          tags: ${{ env.IMAGE }}:${{ github.sha }}
+
+  deploy:
+    name: Deploy to EKS
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS__SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Connect to the cluster
+        run: aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.CLUSTER_NAME }}
+
+      - name: Create or update the DB secret
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          kubectl create secret generic student-backend-secret \
+            --from-literal=DATABASE_URL="$DATABASE_URL" \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Point the manifest at the new image
+        run: sed -i "s|image: .*|image: ${{ env.IMAGE }}:${{ github.sha }}|" k8s/deployment.yaml
+
+      - name: Apply manifests
+        run: |
+          kubectl apply -f k8s/deployment.yaml
+          kubectl apply -f k8s/service.yaml
+
+      - name: Wait for the rollout
+        run: kubectl rollout status deployment/student-backend --timeout=180s
+>>>>>>> b4b6c9074ab8bc6a7847bdaf9277a5cf996f341c
